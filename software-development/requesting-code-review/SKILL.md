@@ -1,7 +1,7 @@
 ---
 name: requesting-code-review
 description: "Pre-commit review: security scan, quality gates, auto-fix."
-version: 2.0.0
+version: 2.1.0
 author: Hermes Agent (adapted from obra/superpowers + MorAlekss)
 license: MIT
 platforms: [linux, macos, windows]
@@ -377,3 +377,21 @@ too complex for the actual problem size." Revert, simplify, re-test.
 - **No test framework found** — skip regression check, reviewer verdict still runs
 - **Lint tools not installed** — skip that check silently, don't fail
 - **Auto-fix introduces new issues** — counts as a new failure, cycle continues
+- **Round-trip gap** — reviewer only sees the diff, not the full output. If the diff looks clean but the full generated output has hallucinated references (e.g., invented case numbers, non-existent article citations), the review will PASS incorrectly. Mitigation: for code that generates structured output (reports, citations, legal docs), extract all references from the FINAL output and verify each one independently — don't rely solely on diff review.
+
+## Intermediate Checkpoint Principle
+
+For multi-hop workflows (A → B → C → D → output), insert independent
+verification at EACH hop, not just at the end:
+
+```
+❌ 舊模式：全程做完 → 最後 review
+    (第一 hop 錯了，後面全歪也抓不到)
+
+✅ 新模式：hop1 → checkpoint → hop2 → checkpoint → hop3 → output
+    (每個 hop 獨立驗證，第一時間攔截錯誤)
+```
+
+Apply this when the change spans multiple layers (config change → API call →
+data transform → output). Verify the intermediate artifacts, not just the
+final diff.

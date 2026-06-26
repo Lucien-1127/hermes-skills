@@ -108,7 +108,55 @@ free -h
 `Partition table entries are not in disk order` 是 cloud-init 產生的正常現象。
 GCP boot image 刻意把 Linux filesystem partition (sector 2099200) 放在 BIOS boot (sector 2048) 之後、EFI (sector 10240) / extended boot (sector 227328) 之前，這「不照 sector 順序」是 GCP image 的標準 layout，**不需修復**。
 
-## 快速指令集
+### 6. GCP 操作失敗：無法重啟/暫停/停止
+
+當 VM 無法從 guest OS 重啟或透過 GCP API 暫停/停止時，**先確認雲端層的 instance 狀態**，不要先挖 guest 內的 GRUB/EFI 設定。
+
+**診斷順序（從雲端到 guest）**
+
+1. **先查 GCP instance 狀態**
+   ```bash
+   # GCP 實例層級的狀態
+   curl -s -H "Metadata-Flavor: Google" \
+     "http://metadata.google.internal/computeMetadata/v1/instance/status" 2>/dev/null
+   curl -s -H "Metadata-Flavor: Google" \
+     "http://metadata.google.internal/computeMetadata/v1/instance/machine-type" 2>/dev/null
+   
+   # 檢查是否有 Shielded VM / Secure Boot 設定
+   curl -s -H "Metadata-Flavor: Google" \
+     "http://metadata.google.internal/computeMetadata/v1/instance/shielded-instance-config/" 2>/dev/null
+   
+   # 檢查自訂 metadata（可能含鎖定/加密旗標）
+   curl -s -H "Metadata-Flavor: Google" \
+     "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true" 2>/dev/null
+   ```
+
+2. **Guest OS 層次檢查（確認不是 guest 阻擋）**
+   ```bash
+   mount | grep " ro,"          # 檢查是否有唯讀掛載（可能表示磁碟鎖定）
+   sudo -n true && echo "sudo OK"  # 確認 sudo 功能正常
+   who -b; uptime -s             # 確認最後開機時間
+   ```
+
+3. **只在確認 guest 層沒問題之後**才檢查 GRUB/EFI/Boot
+   ```bash
+   efibootmgr 2>/dev/null
+   mokutil --sb-state 2>/dev/null
+   grep menuentry /boot/grub/grub.cfg 2>/dev/null | head -10
+   ```
+
+**常見 GCP 雲端層限制**
+- **GCE 維護事件**（live migrate）期間 VM 無法重啟
+- **CVM（機密 VM）** 加密狀態下部分 API 操作受限
+- **組織政策**限制 stop/start 操作
+- **資源鎖定**（`compute.instances.delete` denied）
+- **Shielded VM** — Secure Boot 設定變更需要先停用再重啟
+
+**陷阱**
+- ❌ 不要看到 reboot 失敗就先挖 GRUB/EFI — GCP 雲端層的問題遠比 guest 內的問題常見
+- ❌ 不要假設 `sudo reboot` 失敗表示 sudo 壞了 — 先確認 `sudo -n true` 這類簡單 sudo 指令能不能跑
+
+---
 
 ```bash
 # 系統基本概況

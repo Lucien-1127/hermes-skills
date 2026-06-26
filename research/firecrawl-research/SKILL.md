@@ -1,7 +1,7 @@
 ---
 name: firecrawl-research
-description: "Firecrawl Research Index — 論文搜尋、內文檢索、相關論文擴展、GitHub 實作搜尋"
-version: 1.0.0
+description: Firecrawl Research Index — 論文搜尋、內文檢索、相關論文擴展、GitHub 實作搜尋。與 research-tools 技能互補。
+version: 1.1.0
 author: hermes
 platforms: [linux, macos]
 metadata:

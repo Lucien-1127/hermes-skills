@@ -113,7 +113,7 @@ After 3-4 lenses, check: **has a finding changed the premise?**
 
 ### Phase 5: Verify (TYPE-S)
 
-Before writing final output, run self-check:
+Before writing final output, run self-check. For quantitative claims with a direct verification path (GitHub stats, package versions, API responses), verify from the source directly — don't just trust article claims at face value. See `references/type-s-verification-patterns.md` for common verification shortcuts.
 
 ```
 For EACH quantitative claim in the output draft:
